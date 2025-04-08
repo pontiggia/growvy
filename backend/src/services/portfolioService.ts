@@ -71,13 +71,32 @@ export class PortfolioService {
     const { trackerMode, walletAddress } = portfolioData;
 
     const enhancedData = { ...portfolioData, ownerId: userId };
-    const portfolio = await Portfolio.create(enhancedData);
+    const portfolio = (await Portfolio.create(enhancedData)) as any;
 
     if (trackerMode === 'wallet' && walletAddress) {
       const walletData = await this.handleWalletPortfolio(walletAddress);
+      const connectionId = walletData.pop();
       portfolio.assets = walletData;
       portfolio.hasAsset = true;
       await portfolio.save();
+
+      BlockchainService.processWalletTransactions(
+        walletAddress,
+        portfolio._id.toString(),
+        userId,
+        connectionId.blockchain,
+      )
+        .then(() =>
+          console.log(
+            `Background transaction processing completed for portfolio ${portfolio._id}`,
+          ),
+        )
+        .catch((err) =>
+          console.error(
+            `Error in background transaction processing for portfolio ${portfolio._id}:`,
+            err,
+          ),
+        );
     }
 
     return portfolio;
@@ -100,11 +119,6 @@ export class PortfolioService {
 
   private static async handleWalletPortfolio(address: string) {
     const walletBalances = await BlockchainService.getWalletBalance(address);
-    const walletTransactions = await BlockchainService.getWalletTransactions(
-      address,
-      'ethereum',
-    );
-    console.log('Wallet transactions:', walletTransactions);
     return walletBalances;
   }
 }

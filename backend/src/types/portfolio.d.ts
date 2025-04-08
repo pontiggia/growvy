@@ -14,6 +14,8 @@ export interface IPortfolio extends Document {
   isMain: boolean;
   ownerId: Schema.Types.ObjectId;
   assets?: PortfolioAsset[];
+  syncStatus?: string;
+  lastSync?: Date;
   trackerMode: 'manual' | 'wallet' | 'exchange';
   settings?: {
     displayCurrency?: string;
@@ -60,6 +62,8 @@ export interface UpdatePortfolioDTO {
   portfolioAvatar?: string;
   type: PortfolioType;
   isMain: boolean;
+  syncStatus?: string;
+  lastSync?: Date;
   settings?: {
     displayCurrency?: string;
     lastUpdated?: Date;

@@ -35,6 +35,12 @@ export const portfolioSchema = new Schema<IPortfolio>(
       ref: 'User',
       required: [true, 'Please provide an owner for your portfolio'],
     },
+    syncStatus: {
+      type: String,
+    },
+    lastSync: {
+      type: Date,
+    },
     assets: [
       {
         assetData: {

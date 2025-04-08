@@ -1,6 +1,7 @@
 import coinstatsopenapi from '@api/coinstatsopenapi';
 import { config } from '../config/config';
 import { AssetsService } from './assetsService';
+import { AppError } from '../utils/appError';
 
 coinstatsopenapi.auth(config.coinStatsKey);
 
@@ -18,22 +19,36 @@ export class BlockchainService {
     }
   }
 
-  static async getWalletTransactions(
+  static async processWalletTransactions(
+    walletAddress: string,
+    portfolioId: string,
+    userId: string,
+    connectionId: string,
+  ) {
+    await this.syncWalletTransactions(walletAddress);
+
+    await new Promise((resolve) => setTimeout(resolve, 7000));
+
+    const data = await this.getWalletTransactions(walletAddress, connectionId);
+    console.log('Wallet transactions data:', data);
+  }
+
+  private static async getWalletTransactions(
     walletAddress: string,
     connectionId: string,
   ) {
     try {
-      console.log('Sync start');
-      await this.syncWalletTransactions(walletAddress);
+      const data = await coinstatsopenapi.getWalletTransactions({
+        address: walletAddress,
+        connectionId: connectionId,
+        limit: 30,
+      });
 
-      coinstatsopenapi
-        .getWalletTransactions({
-          address: walletAddress,
-          connectionId: connectionId,
-        })
-        .then(({ data }) => console.log(data))
-        .catch((err) => console.error(err));
-      console.log('trans completed');
+      if (!data) {
+        throw new AppError('No transactions found', 404);
+      }
+
+      return data;
     } catch (error) {
       throw new Error('Error fetching wallet transactions');
     }
@@ -41,10 +56,11 @@ export class BlockchainService {
 
   private static async syncWalletTransactions(walletAddress: string) {
     try {
-      await coinstatsopenapi.transactionsSync({
+      const { data } = await coinstatsopenapi.transactionsSync({
         address: walletAddress,
         connectionId: 'all',
       });
+      console.log('Syncing wallet transactions:', data);
     } catch (error) {
       throw new Error('Error syncing wallet transactions');
     }
@@ -73,12 +89,13 @@ export class BlockchainService {
         }
       }),
     );
+    const blockchainData = {
+      blockchain: data.blockchain,
+    };
+    enhancedBalances.push(blockchainData);
 
     return enhancedBalances;
   }
 
-  private static async standardizeTransactionData(transactionData: any) {
-    const transactions = transactionData[0].transactions;
-    return transactions;
-  }
+  private static async standardizeTransactionData(transactionData: any) {}
 }

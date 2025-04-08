@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "apis": [
+    {
+      "identifier": "coinstatsopenapi",
+      "source": "@coinstatsopenapi/v1.0#1ez8fm7ujnp8l",
+      "integrity": "sha512-zcSLz3YE6X60DLH8koa0YymlEX+06oXIVHmXzxD31ru23qGmj7Ngp2YpDMDRej2unPbHRkXQH385LVIHmLO8zA==",
+      "installerVersion": "6.1.3"
+    }
+  ]
+}

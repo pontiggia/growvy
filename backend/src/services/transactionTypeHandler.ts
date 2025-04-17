@@ -61,18 +61,14 @@ export class TransactionTypeHandler {
     portfolioData: any,
     amount: number,
     price: number,
-    direction?: string,
+    type: string,
   ) {
-    if (!direction) {
-      throw new AppError('Missing transfer direction', 400);
-    }
-
-    if (direction === 'incoming') {
+    if (type === 'buy') {
       await this.handleBuyTransaction(asset, portfolioData, amount, price);
-    } else if (direction === 'outgoing') {
+    } else if (type === 'sell') {
       await this.handleSellTransaction(asset, portfolioData, amount);
     } else {
-      throw new AppError('Invalid transfer direction', 400);
+      throw new AppError('Invalid transaction type', 400);
     }
   }
 }

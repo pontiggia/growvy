@@ -31,7 +31,7 @@ export class TransactionService {
     transaction: CreateTransactionDTO,
     userId: string,
   ) {
-    const { amount, price, type, portfolio, direction, assetId } = transaction;
+    const { amount, price, type, portfolio, assetId } = transaction;
     const portfolioData = await PortfolioService.getPortfolioById(
       portfolio.toString(),
     );
@@ -47,7 +47,7 @@ export class TransactionService {
     const newTransaction = await Transaction.create(enhancedTransaction);
 
     await AssetsService.handleAssetPortfolio(
-      { amount, price, type, portfolio, direction },
+      { amount, price, type, portfolio },
       assetId.toString(),
     );
 
@@ -59,10 +59,6 @@ export class TransactionService {
     updatedTransactionData: UpdateTransactionDTO,
   ) {
     const originalTransaction = await this.getTransactionById(id);
-
-    if (originalTransaction.transactionFrom === 'external') {
-      throw new AppError('Cannot update external transactions', 400);
-    }
 
     const portfolioData = await PortfolioService.getPortfolioById(
       originalTransaction.portfolio.toString(),
@@ -99,10 +95,6 @@ export class TransactionService {
   static async deleteTransaction(id: string) {
     const transaction = await this.getTransactionById(id);
 
-    if (transaction.transactionFrom === 'external') {
-      throw new AppError('Cannot delete external transactions', 400);
-    }
-
     const portfolioData = await PortfolioService.getPortfolioById(
       transaction.portfolio.toString(),
     );
@@ -126,7 +118,7 @@ export class TransactionService {
     portfolioData: any,
     asset: any,
   ) {
-    const { type, amount, price, direction } = transaction;
+    const { type, amount } = transaction;
     const assetId = asset._id.toString();
 
     switch (type) {
@@ -169,42 +161,12 @@ export class TransactionService {
         break;
 
       case 'transfer':
-        if (direction === 'incoming') {
-          const transferInIndex = PortfolioAssetManager.findAssetInPortfolio(
-            portfolioData.assets,
-            assetId,
-          );
-
-          if (transferInIndex >= 0) {
-            PortfolioAssetManager.reduceAssetAmount(
-              portfolioData,
-              transferInIndex,
-              amount,
-            );
-          }
-        } else if (direction === 'outgoing') {
-          const transferOutIndex = PortfolioAssetManager.findAssetInPortfolio(
-            portfolioData.assets,
-            assetId,
-          );
-
-          if (transferOutIndex >= 0) {
-            PortfolioAssetManager.updateExistingAsset(
-              portfolioData,
-              transferOutIndex,
-              amount,
-              transaction.price || 0,
-            );
-          } else {
-            PortfolioAssetManager.addNewAssetToPortfolio(
-              portfolioData,
-              asset,
-              amount,
-              transaction.price || 0,
-            );
-          }
-        }
-        break;
+        PortfolioAssetManager.addNewAssetToPortfolio(
+          portfolioData,
+          asset,
+          amount,
+          transaction.price || 0,
+        );
 
       default:
         throw new AppError(`Unsupported transaction type: ${type}`, 400);
@@ -216,7 +178,7 @@ export class TransactionService {
     portfolioData: any,
     asset: any,
   ) {
-    const { type, amount, price, direction } = transaction;
+    const { type, amount, price } = transaction;
 
     switch (type) {
       case 'buy':
@@ -242,7 +204,7 @@ export class TransactionService {
           portfolioData,
           amount,
           price || 0,
-          direction,
+          type,
         );
         break;
 

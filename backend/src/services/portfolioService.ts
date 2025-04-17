@@ -83,7 +83,7 @@ export class PortfolioService {
       BlockchainService.processWalletTransactions(
         walletAddress,
         portfolio._id.toString(),
-        userId,
+        userId.toString(),
         connectionId.blockchain,
       )
         .then(() =>

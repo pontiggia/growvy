@@ -14,4 +14,8 @@ export const config = {
   enviroment: process.env.NODE_ENV || 'development',
   tradingViewJwt: process.env.TRADING_VIEW_JWT || '',
   coinStatsKey: process.env.COIN_STATS_KEY || '',
+  redisHost: process.env.REDIS_HOST || 'localhost',
+  redisPort: process.env.REDIS_PORT || 12209,
+  redisPassword: process.env.REDIS_PASSWORD || '',
+  redisUsername: process.env.REDIS_USERNAME || '',
 };

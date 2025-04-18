@@ -7,14 +7,15 @@ import { WalletTransaction } from '../models/walletTransactionModel';
 coinstatsopenapi.auth(config.coinStatsKey);
 
 export class BlockchainService {
+  private static assetIdCache = new Map<string, string>();
+
   static async getWalletBalance(walletAddress: string) {
     try {
       const { data } = await coinstatsopenapi.getWalletBalances({
         address: walletAddress,
         networks: 'all',
       });
-      const balances = this.standardizeBalanceData(data);
-      return balances;
+      return this.standarizeWalletBalance(data);
     } catch (error) {
       throw new Error('Error fetching wallet balance');
     }
@@ -73,35 +74,32 @@ export class BlockchainService {
     }
   }
 
-  private static async standardizeBalanceData(walletData: any) {
-    const data = walletData[0];
-    const balances = data.balances;
+  private static async standarizeWalletBalance(walletData: any) {
+    const { balances, blockchain } = walletData[0];
 
-    const enhancedBalances = await Promise.all(
-      balances.map(async (balance: any) => {
-        try {
-          const asset = (await AssetsService.getAssetBySymbol(
-            balance.symbol,
-          )) as { _id: string } | null;
+    const symbols = Array.from(new Set(balances.map((b: any) => b.symbol)));
 
-          return {
-            amount: balance.amount,
-            assetData: asset?._id.toString(),
-          };
-        } catch (error) {
-          return {
-            amount: balance.amount,
-            assetData: null,
-          };
-        }
-      }),
+    const missing = symbols.filter(
+      (s) => typeof s === 'string' && !this.assetIdCache.has(s),
     );
-    const blockchainData = {
-      blockchain: data.blockchain,
-    };
-    enhancedBalances.push(blockchainData);
+    if (missing.length) {
+      const assets = await AssetsService.getAssetsBySymbols(
+        missing as string[],
+      );
+      for (const asset of assets) {
+        this.assetIdCache.set(asset.symbol, asset._id.toString());
+      }
+    }
 
-    return enhancedBalances;
+    const standardized = balances.map((b: any) => ({
+      amount: b.amount,
+      assetData: this.assetIdCache.get(b.symbol) ?? null,
+    }));
+
+    return {
+      blockchain,
+      balances: standardized,
+    };
   }
 
   private static async standardizeTransactionData(

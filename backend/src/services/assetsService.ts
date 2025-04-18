@@ -88,4 +88,8 @@ export class AssetsService {
     portfolioData.markModified('assets');
     await portfolioData.save();
   }
+
+  static async getAssetsBySymbols(symbols: string[]) {
+    return Asset.find({ symbol: { $in: symbols } }, '_id symbol').lean();
+  }
 }

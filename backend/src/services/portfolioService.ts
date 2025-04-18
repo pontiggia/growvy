@@ -74,29 +74,20 @@ export class PortfolioService {
     const portfolio = (await Portfolio.create(enhancedData)) as any;
 
     if (trackerMode === 'wallet' && walletAddress) {
-      const walletData = await this.handleWalletPortfolio(walletAddress);
-      const connectionId = walletData.pop();
-      portfolio.assets = walletData;
+      const walletData = await BlockchainService.getWalletBalance(
+        walletAddress,
+      );
+      const connectionId = walletData.blockchain;
+      portfolio.assets = walletData.balances;
       portfolio.hasAsset = true;
       await portfolio.save();
 
-      BlockchainService.processWalletTransactions(
+      this.processWalletTransactionsBackground(
         walletAddress,
         portfolio._id.toString(),
-        userId.toString(),
-        connectionId.blockchain,
-      )
-        .then(() =>
-          console.log(
-            `Background transaction processing completed for portfolio ${portfolio._id}`,
-          ),
-        )
-        .catch((err) =>
-          console.error(
-            `Error in background transaction processing for portfolio ${portfolio._id}:`,
-            err,
-          ),
-        );
+        userId,
+        connectionId,
+      );
     }
 
     return portfolio;
@@ -117,8 +108,67 @@ export class PortfolioService {
     await portfolio.deleteOne();
   }
 
-  private static async handleWalletPortfolio(address: string) {
-    const walletBalances = await BlockchainService.getWalletBalance(address);
-    return walletBalances;
+  static async syncWalletPortfolio(
+    portfolioId: string,
+    userId: string,
+  ): Promise<any> {
+    const portfolio = await this.getPortfolioById(portfolioId);
+
+    if (portfolio.trackerMode !== 'wallet' || !portfolio.walletAddress) {
+      throw new AppError(
+        'This portfolio is not a wallet portfolio or has no wallet address',
+        400,
+      );
+    }
+
+    if (portfolio.ownerId.toString() !== userId) {
+      throw new AppError('You are not the owner of this portfolio', 403);
+    }
+
+    const walletData = await BlockchainService.getWalletBalance(
+      portfolio.walletAddress,
+    );
+    const connectionId = walletData.blockchain;
+
+    portfolio.assets = walletData.balances;
+    portfolio.hasAsset = walletData.balances.length > 0;
+
+    await portfolio.save();
+
+    this.processWalletTransactionsBackground(
+      portfolio.walletAddress,
+      portfolioId,
+      userId,
+      connectionId,
+    );
+
+    return {
+      status: 'Synced',
+    };
+  }
+
+  private static processWalletTransactionsBackground(
+    walletAddress: string,
+    portfolioId: string,
+    userId: string,
+    connectionId: string,
+  ): void {
+    BlockchainService.processWalletTransactions(
+      walletAddress,
+      portfolioId,
+      userId,
+      connectionId,
+    )
+      .then(() =>
+        console.log(
+          `Background transaction processing completed for portfolio ${portfolioId}`,
+        ),
+      )
+      .catch((err) =>
+        console.error(
+          `Error in background transaction processing for portfolio ${portfolioId}:`,
+          err,
+        ),
+      );
   }
 }

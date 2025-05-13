@@ -12,11 +12,6 @@ const transactionSchema = new Schema<ITransaction>(
       enum: ['buy', 'sell', 'transfer', 'deposit', 'withdrawal'],
       required: [true, 'Please provide a type for the transaction'],
     },
-    transactionFrom: {
-      type: String,
-      enum: ['local', 'external'],
-      required: [true, 'Please provide a source for the transaction'],
-    },
     amount: {
       type: Number,
       required: [true, 'Please provide an amount for the transaction'],

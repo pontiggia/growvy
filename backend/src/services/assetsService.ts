@@ -49,7 +49,7 @@ export class AssetsService {
 
   static async handleAssetPortfolio(data: any, id: string) {
     const asset = await this.getAssetById(id);
-    const { amount, price, type, portfolio, direction } = data;
+    const { amount, price, type, portfolio } = data;
     const portfolioData = await PortfolioService.getPortfolioById(portfolio);
 
     if (!portfolioData.assets) {
@@ -78,15 +78,18 @@ export class AssetsService {
           portfolioData,
           amount,
           price,
-          direction,
+          type,
         );
         break;
       default:
         throw new AppError('Unsupported transaction type', 400);
     }
 
-    // Guardar los cambios
     portfolioData.markModified('assets');
     await portfolioData.save();
+  }
+
+  static async getAssetsBySymbols(symbols: string[]) {
+    return Asset.find({ symbol: { $in: symbols } }, '_id symbol').lean();
   }
 }
